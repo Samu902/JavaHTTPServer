@@ -126,13 +126,6 @@ public class JavaHTTPServer implements Runnable
                     return;
                 }
                 
-                //if file is not HTML or folder, try to redirect to a folder with the same name
-                if(!filePath.endsWith(".html") && !filePath.endsWith(".htm") && !filePath.endsWith("/"))
-                {
-                    redirectToFolder(headerOut, filePath);
-                    return;
-                }
-                
 				//if path is a folder, append the default file
 				if (filePath.endsWith("/"))
 					filePath += DEFAULT_FILE;
@@ -166,7 +159,14 @@ public class JavaHTTPServer implements Runnable
         catch (FileNotFoundException fnfe) 
         {
 			try 
-            {
+            {                
+                //if file is without extension (and not a folder) and doesn't exist, try to redirect to a folder with the same name
+                if(getFileExtension(filePath).equals("") && !filePath.endsWith("/"))
+                {
+                    redirectToFolder(headerOut, filePath);
+                    return;
+                }
+                
 				fileNotFound(headerOut, dataOut, filePath);
 			} 
             catch (IOException ioe) 
@@ -219,13 +219,24 @@ public class JavaHTTPServer implements Runnable
 	}
 	
 	//return supported MIME Types
-	private String getContentType(String fileRequested) 
+	private String getContentType(String filePath) 
     {
-		if (fileRequested.endsWith(".htm")  ||  fileRequested.endsWith(".html"))
+		if (filePath.endsWith(".htm")  ||  filePath.endsWith(".html"))
 			return "text/html";
 		else
 			return "text/plain";
 	}
+    
+    private String getFileExtension(String filePath)
+    {
+        String extension = "";
+        int index = filePath.lastIndexOf('.');
+        
+        if(index > 0)
+            extension = filePath.substring(index + 1);
+                
+        return extension;
+    }
 	
     //sends a 404 response
 	private void fileNotFound(PrintWriter headerOut, OutputStream dataOut, String filePath) throws IOException 
