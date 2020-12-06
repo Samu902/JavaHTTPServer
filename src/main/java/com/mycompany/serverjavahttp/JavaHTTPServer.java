@@ -14,6 +14,10 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -26,7 +30,11 @@ public class JavaHTTPServer implements Runnable
 	static final String DEFAULT_FILE = "index.html";
 	static final String FILE_NOT_FOUND = "404.html";
 	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
-	static final int PORT = 8080;
+    
+    static final String DB_JSON_URL = "/db/json/";
+    static final String DB_XML_URL = "/db/xml/";
+	
+    static final int PORT = 8080;
 	
 	static final boolean verbose = true;
 	
@@ -41,6 +49,9 @@ public class JavaHTTPServer implements Runnable
     {
 		try 
         {
+            String DRIVER = "com.mysql.cj.jdbc.Driver";
+            Class.forName(DRIVER);
+            
 			ServerSocket serverConnect = new ServerSocket(PORT);
 			System.out.println("Server started.\nListening for connections on port : " + PORT + " ...\n");
 			
@@ -61,6 +72,11 @@ public class JavaHTTPServer implements Runnable
         {
 			System.err.println("Server Connection error : " + e.getMessage());
 		}
+        catch (ClassNotFoundException e)
+        {
+            System.out.println("JDBC driver not found...");
+            System.exit(1);
+        }
 	}
 
 	@Override
@@ -123,6 +139,13 @@ public class JavaHTTPServer implements Runnable
                 if(filePath.endsWith("/punti-vendita.xml"))
                 {
                     puntiVendita(headerOut, dataOut);
+                    return;
+                }
+                
+                //DB paths
+                if(filePath.equals(DB_JSON_URL) || filePath.equals(DB_XML_URL))
+                {
+                    databaseData(headerOut, dataOut, filePath);
                     return;
                 }
                 
@@ -294,6 +317,80 @@ public class JavaHTTPServer implements Runnable
         headerOut.flush();
         //send file data
         dataOut.write(byteData, 0, xmlData.length());
+        dataOut.flush();
+    }
+    
+    private void databaseData(PrintWriter headerOut, BufferedOutputStream dataOut, String filePath) throws IOException
+    {
+        ArrayList<Persona> persone = new ArrayList<>();
+        String URL_DB = "jdbc:mysql://localhost:3306/javadb";
+        Connection conn = null;
+        try
+        {
+            //establish connection with DB
+            conn = DriverManager.getConnection(URL_DB, "root", "root");
+            Statement stat = conn.createStatement();
+            ResultSet resultSet = stat.executeQuery("SELECT * FROM persona");
+
+            //read data from DB
+            while (resultSet.next())
+            {
+                int id = resultSet.getInt("id");
+                String nome = resultSet.getString("nome");
+                String cognome  = resultSet.getString("cognome");
+                String telefono = resultSet.getString("telefono");
+                
+                persone.add(new Persona(id, nome, cognome, telefono));
+            }
+        } 
+        catch (Exception e)
+        {
+            System.out.println("Error during DB connection " + e);
+            System.exit(1);
+        }
+        finally 
+        {
+            //close DB connection
+            if(conn != null)
+            {
+                try
+                {
+                    conn.close();
+                } 
+                catch (Exception e)
+                {
+                    System.out.println("Error closing DB connection");
+                }
+            }
+        }
+        
+        //format data into json or xml
+        String contentType = "";
+        String textData = "";
+        if(filePath.equals(DB_JSON_URL))
+        {
+            JsonMapper jsonMapper = new JsonMapper();
+            contentType = "application/json";
+            textData = jsonMapper.writeValueAsString(persone);
+        }
+        else
+        {
+            XmlMapper xmlMapper = new XmlMapper();
+            contentType = "application/xml";
+            textData = xmlMapper.writeValueAsString(persone);
+        }
+        byte[] byteData = textData.getBytes();
+  
+        //send HTTP headers
+        headerOut.println("HTTP/1.1 200 OK");
+        headerOut.println("Server: Java HTTP Server from Samu902 : 1.0");
+        headerOut.println("Date: " + new Date());
+        headerOut.println("Content-type: " + contentType);
+        headerOut.println("Content-length: " + textData.length());
+        headerOut.println(); // blank line between headers and content, very important!
+        headerOut.flush();
+        //send file data
+        dataOut.write(byteData, 0, textData.length());
         dataOut.flush();
     }
 }
