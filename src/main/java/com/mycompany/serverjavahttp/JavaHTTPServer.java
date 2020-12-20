@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -34,7 +35,7 @@ public class JavaHTTPServer implements Runnable
     static final String DB_JSON_URL = "/db/json/";
     static final String DB_XML_URL = "/db/xml/";
 	
-    static final int PORT = 8080;
+    static final int PORT = 3000;
 	
 	static final boolean verbose = true;
 	
@@ -83,7 +84,7 @@ public class JavaHTTPServer implements Runnable
 	public void run() 
     {
 		//this is the activity of a thread  
-        
+
         //readers and writers
 		BufferedReader in = null;
         PrintWriter headerOut = null;
@@ -119,7 +120,8 @@ public class JavaHTTPServer implements Runnable
 				File file = new File(WEB_ROOT, METHOD_NOT_SUPPORTED);
 				int fileLength = (int)file.length();
 				String contentMimeType = "text/html";
-				byte[] fileData = readFileData(file, fileLength);
+//				byte[] fileData = readFileData(file, fileLength);
+				byte[] fileData = readFileDataJar(METHOD_NOT_SUPPORTED);
 					
 				//send HTTP headers
 				headerOut.println("HTTP/1.1 501 Not Implemented");
@@ -160,7 +162,8 @@ public class JavaHTTPServer implements Runnable
                 //GET method so we return content
 				if (method.equals("GET")) 
                 {
-					byte[] fileData = readFileData(file, fileLength);
+//					byte[] fileData = readFileData(file, fileLength);
+					byte[] fileData = readFileDataJar(filePath);
 					
 					//send HTTP headers
 					headerOut.println("HTTP/1.1 200 OK");
@@ -240,6 +243,27 @@ public class JavaHTTPServer implements Runnable
 		
 		return fileData;
 	}
+    
+    //reads binary file data in jar tree
+    private byte[] readFileDataJar(String jarFilePath) throws IOException 
+    {
+		InputStream fileIn = null;
+		byte[] fileData = null;
+		
+		try 
+        {
+            fileIn = getClass().getClassLoader().getResourceAsStream(jarFilePath);
+            fileData = new byte[fileIn.available()];
+			fileIn.read(fileData);
+		} 
+        finally 
+        {
+			if (fileIn != null) 
+				fileIn.close();
+		}
+		
+		return fileData;
+	}
 	
 	//return supported MIME Types
 	private String getContentType(String filePath) 
@@ -267,7 +291,8 @@ public class JavaHTTPServer implements Runnable
 		File file = new File(WEB_ROOT, FILE_NOT_FOUND);
 		int fileLength = (int)file.length();
 		String content = "text/html";
-		byte[] fileData = readFileData(file, fileLength);
+//		byte[] fileData = readFileData(file, fileLength);
+		byte[] fileData = readFileDataJar(FILE_NOT_FOUND);
 		
 		headerOut.println("HTTP/1.1 404 File Not Found");
 		headerOut.println("Server: Java HTTP Server from Samu902 : 1.0");
