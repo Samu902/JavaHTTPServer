@@ -35,7 +35,7 @@
               <configuration>
                 <archive>
                   <manifest>
-                        <mainClass>Server.JavaHTTPServer</mainClass>
+                        <mainClass>com.mycompany.serverjavahttp.JavaHTTPServer</mainClass>
                   </manifest>
                 </archive>
                 <descriptorRefs>
