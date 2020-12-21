@@ -61,7 +61,7 @@ public class JavaHTTPServer implements Runnable
 				JavaHTTPServer myServer = new JavaHTTPServer(serverConnect.accept());
 				
 				if (verbose) 
-					System.out.println("Connecton opened. (" + new Date() + ")");
+					System.out.println("Connection opened. (" + new Date() + ")");
 				
 				//create dedicated thread to manage the client connection
 				Thread thread = new Thread(myServer);
@@ -155,8 +155,6 @@ public class JavaHTTPServer implements Runnable
                 //GET method so we return content
 				if (method.equals("GET")) 
                 {
-                    System.out.println(filePath);
-                    System.out.println(WEB_ROOT + filePath);
 					byte[] fileData = readFileData(WEB_ROOT + filePath);
                     int fileLength = fileData.length;
                     String content = getContentType(filePath);
@@ -229,8 +227,6 @@ public class JavaHTTPServer implements Runnable
 		try 
         {
             fileIn = getClass().getResourceAsStream(jarFilePath);
-            System.out.println(jarFilePath);
-            System.out.println(fileIn);
             fileData = new byte[fileIn.available()];
 			fileIn.read(fileData);
 		} 
