@@ -26,7 +26,7 @@ import java.util.StringTokenizer;
 
 public class JavaHTTPServer implements Runnable
 {
-	static final String WEB_ROOT = "files";
+	static final String WEB_ROOT = "/files";
 	static final String DEFAULT_FILE = "index.html";
 	static final String FILE_NOT_FOUND = "404.html";
 	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
