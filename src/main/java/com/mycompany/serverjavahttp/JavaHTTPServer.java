@@ -6,7 +6,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,8 +25,8 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 public class JavaHTTPServer implements Runnable
-{	
-	static final File WEB_ROOT = new File("./files/");
+{
+	static final String WEB_ROOT = "files";
 	static final String DEFAULT_FILE = "index.html";
 	static final String FILE_NOT_FOUND = "404.html";
 	static final String METHOD_NOT_SUPPORTED = "not_supported.html";
@@ -117,11 +116,9 @@ public class JavaHTTPServer implements Runnable
 					System.out.println("501 Not Implemented : " + method + " method.");
 				
 				//return the not supported file to the client
-				File file = new File(WEB_ROOT, METHOD_NOT_SUPPORTED);
-				int fileLength = (int)file.length();
+				byte[] fileData = readFileData(WEB_ROOT + "/" + METHOD_NOT_SUPPORTED);
+				int fileLength = fileData.length;
 				String contentMimeType = "text/html";
-//				byte[] fileData = readFileData(file, fileLength);
-				byte[] fileData = readFileDataJar(METHOD_NOT_SUPPORTED);
 					
 				//send HTTP headers
 				headerOut.println("HTTP/1.1 501 Not Implemented");
@@ -154,16 +151,15 @@ public class JavaHTTPServer implements Runnable
 				//if path is a folder, append the default file
 				if (filePath.endsWith("/"))
 					filePath += DEFAULT_FILE;
-				
-				File file = new File(WEB_ROOT, filePath);
-				int fileLength = (int) file.length();
-				String content = getContentType(filePath);
-				
+                
                 //GET method so we return content
 				if (method.equals("GET")) 
                 {
-//					byte[] fileData = readFileData(file, fileLength);
-					byte[] fileData = readFileDataJar(filePath);
+                    System.out.println(filePath);
+                    System.out.println(WEB_ROOT + filePath);
+					byte[] fileData = readFileData(WEB_ROOT + filePath);
+                    int fileLength = fileData.length;
+                    String content = getContentType(filePath);
 					
 					//send HTTP headers
 					headerOut.println("HTTP/1.1 200 OK");
@@ -179,7 +175,7 @@ public class JavaHTTPServer implements Runnable
 				}
 				
 				if (verbose)
-					System.out.println("File " + filePath + " of type " + content + " returned");	
+					System.out.println("File " + filePath + " of type " + getContentType(filePath) + " returned");	
 			}
 		} 
         catch (FileNotFoundException fnfe) 
@@ -223,36 +219,18 @@ public class JavaHTTPServer implements Runnable
 				System.out.println("Connection closed.\n");
 		}
 	}
-	
-    //reads binary file data
-	private byte[] readFileData(File file, int fileLength) throws IOException 
-    {
-		FileInputStream fileIn = null;
-		byte[] fileData = new byte[fileLength];
-		
-		try 
-        {
-			fileIn = new FileInputStream(file);
-			fileIn.read(fileData);
-		} 
-        finally 
-        {
-			if (fileIn != null) 
-				fileIn.close();
-		}
-		
-		return fileData;
-	}
     
     //reads binary file data in jar tree
-    private byte[] readFileDataJar(String jarFilePath) throws IOException 
+    private byte[] readFileData(String jarFilePath) throws IOException 
     {
 		InputStream fileIn = null;
 		byte[] fileData = null;
 		
 		try 
         {
-            fileIn = getClass().getClassLoader().getResourceAsStream(jarFilePath);
+            fileIn = getClass().getResourceAsStream(jarFilePath);
+            System.out.println(jarFilePath);
+            System.out.println(fileIn);
             fileData = new byte[fileIn.available()];
 			fileIn.read(fileData);
 		} 
@@ -288,11 +266,9 @@ public class JavaHTTPServer implements Runnable
     //sends a 404 response
 	private void fileNotFound(PrintWriter headerOut, OutputStream dataOut, String filePath) throws IOException 
     {
-		File file = new File(WEB_ROOT, FILE_NOT_FOUND);
-		int fileLength = (int)file.length();
+		byte[] fileData = readFileData(WEB_ROOT + "/" + FILE_NOT_FOUND);
+		int fileLength = fileData.length;
 		String content = "text/html";
-//		byte[] fileData = readFileData(file, fileLength);
-		byte[] fileData = readFileDataJar(FILE_NOT_FOUND);
 		
 		headerOut.println("HTTP/1.1 404 File Not Found");
 		headerOut.println("Server: Java HTTP Server from Samu902 : 1.0");
